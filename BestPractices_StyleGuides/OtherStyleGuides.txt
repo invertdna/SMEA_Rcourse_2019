@@ -1,0 +1,6 @@
+#Other Style Guides
+
+Hadley Wickham's (from the book "Advanced R"):  http://adv-r.had.co.nz/Style.html
+
+The R package "styler", which you can use to automatically style your code.  https://cran.r-project.org/web/packages/styler/index.html
+
