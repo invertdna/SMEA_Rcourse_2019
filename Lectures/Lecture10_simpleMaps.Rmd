@@ -1,0 +1,288 @@
+---
+title: 'Lecture 10: Simple Mapping'
+author: "Kelly"
+date: ""
+output: html_document
+---
+
+```{r, echo = F, message=F, include=F}
+library(tidyverse)
+library(ggmap)
+library(ggspatial)
+library(tmap)
+library(ggrepel)
+library(sf)
+library(prettymapr)
+knitr::opts_knit$set(progress=FALSE)
+```
+
+# Making Simple Maps
+
+Creating things makes you feel good. And being able to create useful and beautiful things is an extremely valuable skill to have.  
+
+Making very simple maps fits into this category of skills. It's fun, it's useful, it can be beautiful, and it doesn't have to be difficult.  And you'll use it all the time.  
+
+To be clear: hardcore spatial analysis and GIS is a whole discipline, and a whole career.  But most of us don't need that depth of skill; we just want to make a picture that illustrates something about the world (maybe where you collected data, for example, or comparing different countries' GDPs, etc.)
+
+Sunny Jardine teaches a class on spatial analysis in **R**.  Today's class is just an appetizer. 
+
+
+# Vectors and Rasters
+
+Some good background:
+
+Spatial data generally takes two forms:
+  - *Vectors*: lines/equations that describe features that are points/lines/outlines/paths/etc. Sharp.
+  - *Rasters*: continuous image-like data (e.g., pixels).  Fuzzy. 
+
+For example, a colored map might be a raster, with roads or boundaries or other features being vectors. 
+
+
+# GGMAP
+
+You're familiar with `ggplot`.  And you're familiar with Google Maps.  So what could be better than putting the two together?  This used to be -- and maybe still is -- the easiest way to create very simple maps in R.  
+
+BUT Google Maps now requires a personalized key to go and grab things from its web platform (this is called an "API Key", where API stands for Application Program Interface... which in English just means "rules for playing with our web platform" ). So to use this, you have to go register with google at https://cloud.google.com/maps-platform/ to get a key. It's free (there's a $300 credit for the first year of use, which makes it free unless you use a ton of data), but requires a credit card they keep on file in case you run through query limits. 
+
+To register, go to the site linked above. 
+
+  1. Click on "get started" and select "Maps" and "Places" from the popup box. Then select "continue". 
+  2. It will ask you to "select a project" from a drop-down menu.  Choose "R-maps", agree to the terms of service, and click "next".  
+  3. Follow the remaining instructions, and record your key somewhere (perhaps copy/paste to a notes file on your computer)
+  4. You will have a chance to select from among the many APIs that Google provides for its various web services. Make sure you select at least the relevant map APIs -- notably, Static Map API (for maps themselves) and Places API (to be able to query locations by name).
+  5. Re: securing your API key.  Once you have an API key, you can manage preferences in the Google Cloud Platform's "APIs and Services" page (which you get to by selecting it from the horizontal-lines navigation menu in the upper-left corner). Click on "credentials" and edit your key; you can place restrictions on it (for example: if someone got a hold of your key, do you want them to be able to use google street view with it? If you never plan to do that, you might as well restrict the usage to bar it). In reality, I'm not sure how problematic an API key might be from a security perspective, but it's worth knowing about.  See Best Practices guide for securing APIs here: https://developers.google.com/maps/api-key-best-practices
+  
+If you don't have a Google API key or don't want to deal w that, you can grab maps from an open-source option, http://maps.stamen.com , using the same `ggmap` package.
+
+```{r, echo = FALSE}
+register_google(key = "AIzaSyCeloL13Ah7DykMnnwvTz8744fEn5N9sGE")
+
+```
+
+  
+
+```{r, message=FALSE}
+
+#create a data frame w coordinates and site names for sites of interest
+placenames <- data.frame(
+  lats = c(47.639464, 47.848, 47.3584, 47.1019, 47.3543, 46.5395),
+  longs = c(-122.332371, -122.5829, -122.7965, -122.7268, -123.1566, -123.9888),
+  sitenames = c("Seattle", "Port Gamble (PG)","Case Inlet (CI)", "Nisqually Reach (NR)", "Skokomish (SK)", "Willapa Bay (WB)")
+)
+ 
+#create a bounding box, which we'll use later
+bounding <-makebbox(w = min(placenames$longs),
+               e = max(placenames$longs),
+               n = max(placenames$lats),
+               s = min(placenames$lats))
+
+
+#get the map from google, specifying zoom and center of map
+map_google <- get_googlemap(
+  center = c(-173.977827, -18.591691),  #map center
+  zoom = 8,              #zoom
+  maptype = "satellite") #map type
+
+ggmap(map_google)
+
+
+#get the map from stamenmaps, specifying zoom and center of map
+map_stamen <- get_stamenmap(
+  bbox = as.vector(bounding),  #map center
+  zoom = 8,              #zoom (larger numbers are more zoomed-out)
+  maptype = "terrain")  #map type
+
+#you can plot the map like so:
+ggmap(map_google)
+
+ggmap(map_stamen)
+
+```
+
+```{r}
+#then, ggmap treats the map like a ggplot object: 
+ggmap(map_google) +
+	geom_point(data=placenames,              #and you can add points or text just like in ggplot
+	           aes(x=longs, y=lats),
+	           color = "grey",
+	           size=2) +
+	geom_text(data=placenames,
+	          aes(x=longs,
+	          y=lats-.1,
+	          label=sitenames),
+	          fontface = "bold",
+	          size=3,
+	          color = "gray") +
+	theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) +
+  #ylim(c(46.25, 48.5)) +
+	xlab("Longitude") +
+	ylab("Latitude")
+
+
+```
+
+`ggmap` provides a lot of functionality, once you get it up and running. 
+
+
+All of the ggplot options are available, so, for example:
+
+
+```{r}
+library(forcats)  #to use some crime data from this package
+
+# reduce crime to violent crimes in downtown houston
+violent_crimes <- crime %>% 
+  filter(
+    offense != "auto theft",
+    offense !=  "theft", 
+    offense !=  "burglary",
+    -95.39681 <= lon & lon <= -95.34188,
+     29.73631 <= lat & lat <=  29.78400
+  ) %>% 
+  mutate(
+    offense = fct_drop(offense),
+    offense = fct_relevel(offense, c("robbery", "aggravated assault", "rape", "murder"))
+  )
+
+#qmplot is a quick-plot shortcut here
+#scatterplot
+qmplot(lon, lat, data = violent_crimes, maptype = "toner-lite", color = I("red"))
+
+
+#really cool density plot:
+robberies <- violent_crimes %>% filter(offense == "robbery")
+
+qmplot(lon, lat, data = violent_crimes, geom = "blank", 
+  zoom = 14, maptype = "toner-background", darken = .7, legend = "topleft"
+) +
+  stat_density_2d(aes(fill = ..level..), geom = "polygon", alpha = .3, color = NA) +
+  scale_fill_gradient2("Robbery\nPropensity", low = "white", mid = "yellow", high = "red", midpoint = 650)
+#  Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.
+
+
+```
+
+
+
+
+
+
+# tmap 
+
+Beyond Google Maps, there's a wide world of more technical and detailed ways of drawing maps in **R**. 
+
+The package `tmap` gives an intro to making thematic maps that show data of various kinds. (This makes use of  underlying simple features "sf", which is a way of making spatial data available to **R**).
+
+
+The vignette is here: https://cran.r-project.org/web/packages/tmap/vignettes/tmap-getstarted.html
+
+Note: to get `tmap` to work, you will need a bunch of packages on which `tmap` depends. Some of these may require substantial installation. As a first step, Mac users will need the XCode Command Line Tools (google this for instructions for your particular operating system). Windows may need something similar, probably including a gcc compiler (Cygwin is the most likely). The easiest way to figure this out: try to install the R package `tmap` and see what the errors are (if no errors, you're all set).  Go to the first package in the list that doesn't correctly install, and see why.
+
+
+```{r}
+data("World")
+
+tm_shape(World) +
+    tm_polygons("HPI")
+
+World <- World %>% 
+  mutate(logGDP = log(gdp_cap_est))
+
+tm_shape(World) +
+    tm_polygons("logGDP")
+
+#see also 
+#browseVignettes("tmap")
+```
+
+
+# Open Street Map
+
+OSM is an open, free alternative to Google Maps and similar proprietary mapping data/software. See https://www.openstreetmap.org/about
+
+It is particularly awesome with **R** , where it's quite customizable. This is great for more serious GIS work, but cumbersome to set up, because of lower-level operating-system requirements. 
+
+```{r, message=FALSE}
+library(raster)
+library(rosm)
+library(prettymapr)
+
+#see
+osm.types()
+
+
+#make bounding box
+bounding <-makebbox(w = min(placenames$longs),
+               e = max(placenames$longs),
+               n = max(placenames$lats),
+               s = min(placenames$lats))
+
+map.raster.alt <- osm.raster(bounding, 
+                             type = "osmgrayscale")  #default projection 4326
+
+#plot
+ggplot() +
+  layer_spatial(map.raster.alt)
+```
+
+```{r, message=FALSE}
+#Seattle specifically
+SeattleBounding <- makebbox(w = -122.45,
+                            e = -122.2,
+                            n = 47.7,
+                            s = 47.4)
+
+Seattle <- osm.raster(SeattleBounding, 
+                      type = "osmgrayscale")
+
+
+ggplot() +
+  layer_spatial(Seattle)
+```
+
+```{r, message=FALSE}
+#UW, even more specifically
+UWBounding <- makebbox(w = -122.32,
+                            e = -122.29,
+                            n = 47.66,
+                            s = 47.65)
+
+UWplacenames <- data.frame( lats = c(47.658403, 47.652399), 
+                            longs = c(-122.308778, -122.314905),
+                            sitename = c("Denny Hall", "Marine Studies")) %>%
+  st_as_sf(coords = c("longs", "lats"), crs = 4326, remove = F)  #make into spatial object w package `sf`, which you'll need for all kinds of spatial analysis
+
+
+UW <- osm.raster(UWBounding, 
+                 type = "cartolight",
+                 projection = 4326)
+ggplot() +
+  layer_spatial(UW) +
+  geom_point(aes(y = UWplacenames$lats,
+                 x = UWplacenames$longs)) +
+  xlab("") + ylab("") +
+  geom_label_repel(data = UWplacenames, 
+                      stat = "sf_coordinates",
+                      aes(geometry = geometry, 
+                          label = sitename),
+                      #nudge_x = -0.2,
+                      fill = "grey90",
+                      alpha = 0.7,
+                      label.r = 0,
+                      min.segment.length = 0,
+                      #direction    = "y",
+                      #hjust        = 1,
+                      segment.size = 0.4) +
+      theme_bw()
+
+
+
+
+```
+
+
+
+
+
+
+

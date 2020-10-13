@@ -1,6 +1,6 @@
 ---
 title: "Lecture 11: Project Management"
-author: "Kelly and Gallego"
+author: "Kelly"
 date: ''
 output:
   html_document: default
@@ -20,13 +20,21 @@ library(yarrr)
 
 I have always found it difficult to stay organized, particularly when a project doesn't have a clear trajectory: perhaps it starts as an email, or a stray thought, and then compounds into a thing having data and analysis and plots, etc.  
 
+The larger context here is reproducible research. And here, your most important collaborator is your future self: you want to make sure that -- 6 or 12 or 18 months from now -- you could complete the same research and arrive at precisely the same answers as you do today.  See http://ropensci.github.io/reproducibility-guide/sections/introduction/
+
+
+And, pulled from that link, a useful thought: ``*An article about computational results is advertising, not scholarship. The actual scholarship is the full software environment, code and data, that produced the result.*'' (Claerbout and Karrenbach 1992).  In our context: your final paper or problem set (or whatever) isn't itself scholarship.  The process by which you get to that end product is the scholarship, and you need to be able to point to what you did and why you did it. 
+
+
+# Tips 
+
 Given that you're going to be using **R**, it makes sense to have a cheap/easy way of setting up a structure for ideas and files for each project.  And then every project will have the same structure.  This will save you a ton of time in the long run, because it will be harder to lose things.  
 
 A really nice overview of useful concepts: https://swcarpentry.github.io/r-novice-gapminder/02-project-intro/
 
 Tips from that exercise:
 
->  * Treat data as read only
+>  * Treat data as read-only
 
 > This is probably the most important goal of setting up a project. Data is typically time consuming and/or expensive to collect. Working with them interactively (e.g., in Excel) where they can be modified means you are never sure of where the data came from, or how it has been modified since collection. It is therefore a good idea to treat your data as “read-only”.
 
@@ -74,16 +82,23 @@ In this particular case, your new project folder will come with a set number of 
 There are other ways of organizing files, of course, and you should pick one that works for you. But pick one! 
 
 
-Another example is here: 
+
+
+  * Another example is here: 
 Building a Research Compendium...
 
 https://github.com/ropensci/rrrpkg
 
+A research compendium might just be a running text file that tells future-you (and others) what you did and why.  BUT let's be honest: you're never going to keep that up for long.  So you want structural techniques for forcing accountability and organization. 
 
 
 # Plotting to PDF (or JPG, etc)
 
-One important part of staying organized is generating plots, analyses, etc, and then exporting them from **R** to be saved on your hard drive. Consistent w the advice above, it's not these outputs that fundamentally matter -- it's the code you used to generate the outputs.  But that doesn't mean you want to re-generate plots all the time.  Here, we use **R** to write a new figure to a PDF file in your working directory, which could then be used in a Word doc or elsewhere. 
+One important part of staying organized is generating plots, analyses, etc, and then exporting them from **R** to be saved on your hard drive. Consistent w the advice above, it's not these outputs that fundamentally matter -- the valuable part is the code you used to generate the outputs.  
+
+But that doesn't mean you want to re-generate plots all the time.  And plots you save along the way are nice to be able to go back to and illustrate how your analysis has changed over time.
+
+Here, we use **R** to write a new figure to a PDF file in your working directory, which could then be used in a Word doc or elsewhere. 
 
 ```{r}
 pdf("myplot.pdf", width = 5, height = 5)  #tell R you want to make a pdf, and (optionally) tell it what size you want the canvas to be
@@ -92,6 +107,29 @@ dev.off()                                 #then tell R you are done writing the 
 
 #all done!
 
+
+#Note this works w ggplot also:
+
+library(tidyverse)
+
+pdf("myplot_ggplot.pdf", width = 5, height = 5)  
+  mtcars %>% 
+    ggplot(aes(y = mpg,x = hp)) +
+      geom_point()
+dev.off()       
+
+#or also:
+
+ myplot <- mtcars %>% 
+    ggplot(aes(y = mpg,x = hp)) +
+      geom_point() 
+
+ ggsave(filename = "myplot_ggplot_ggsave.pdf", 
+             plot = myplot)  #note ggsave() uses the size of the current graphics device (i.e., the size of the plot on your screen when you save it)
+
+
+
+
 ```
 
 
@@ -99,17 +137,17 @@ dev.off()                                 #then tell R you are done writing the 
 
 Knowing just a tiny bit of how your operating system works can save you a lot of time, because you can efficiently tell **R** precisely where to put a file. 
 
-The concept: using the file `path`.  This is the bit of info that tells the computer where something is on the hard drive or on a network.  You know all about this already.  For example: "Kelly_Lab/SMEA550_2018_R_course/Rcourse_Autumn2018/NewProjectExample"
+The concept: using the file `path`.  This is the bit of info that tells the computer where something is on the hard drive or on a network.  You know all about this already.  For example: `Kelly_Lab/SMEA550_2018_R_course/Rcourse_Autumn2019/NewProjectExample`
 
 The only new thing here is that you want to be able to point your computer to a place to keep files, so that you can remain organized.
 
-  * *Absolute paths* always unambiguously tell the computer where something is, because they give the whole hierarchical file structure. For example:  "/Volumes/GoogleDrive/My Drive/Kelly_Lab/SMEA550_2018_R_course/Rcourse_Autumn2018/NewProjectExample".  This can be useful, because it works from anywhere on your computer, no matter what working directory you're in at the time.  BUT it won't work on anyone else's computer, or on your next computer, or if you change the name of some folder in that path. So...
+  * *Absolute paths* always unambiguously tell the computer where something is, because they give the whole hierarchical file structure. For example:  `/Volumes/GoogleDrive/My Drive/Kelly_Lab/SMEA550_2018_R_course/Rcourse_Autumn2019/NewProjectExample`.  This can be useful, because it works from anywhere on your computer, no matter what working directory you're in at the time.  BUT it won't work on anyone else's computer, or on your next computer, or if you change the name of some folder in that path. So...
 
   * *Relative paths* are shorter, and are context-dependent.  They give a location as *relative* to the current working directory.  This is useful because you could move a whole project folder to someone else's computer, and it would still work.  But they can be dangerous because if you aren't sure what working directory you're in, you aren't sure where you're putting files.  For example:  
 
-    + "Rcourse_Autumn2018/NewProjectExample" is a relative path that makes sense if I'm working in the folder "SMEA550_2018_R_course". It is a folder that is further down the hierarchical structure (below) where I am currently working.  
+    + `Rcourse_Autumn2019/NewProjectExample` is a relative path that makes sense if I'm working in the folder `SMEA550_2019_R_course`. It is a folder that is further down the hierarchical structure (below) where I am currently working.  
 
-    + "../Kelly_Lab" is a relative path that makes sense from the same working folder; it references the folder one hierarchical level ABOVE where I am currently working. 
+    + `../Kelly_Lab` is a relative path that makes sense from the same working folder; it references the folder one hierarchical level ABOVE where I am currently working. 
 
 So, let's say you have the following folder structure:
 
@@ -121,20 +159,20 @@ NewProjectExample
  and you are presently in the working directory `NewProjectExample`.  
  
 ```{r}
-setwd("/Volumes/GoogleDrive/My Drive/Kelly_Lab/SMEA550_2018_R_course/Rcourse_Autumn2018/NewProjectExample")
+setwd("/Volumes/GoogleDrive/My Drive/RPKDesktop/SMEA/SMEA_550C_Rcourse_2019/NewProjectExample")
 
 # Save a plot to the subfolder `Figures`
   pdf("Figures/myplot.pdf", width = 5, height = 5)  #note here, we specify the subfolder
     plot(mpg~hp, data = mtcars)
   dev.off()     
 
-# Save a csv to the subfolder `Data`
+# Save a csv to the subfolder `Data` (one level BELOW your current working directory)
   write.csv(mtcars, "Data/mtcars1.csv")  #here again, specify the path
 
-# Save a csv to the project folder itself
+# Save a csv to the project folder itself (your current working directory)
   write.csv(mtcars, "mtcars2.csv")  #you're in the current wd, so you don't need a longer path
   
-# Save a csv to the folder one hierarchical level above your current wd
+# Save a csv to the folder one hierarchical level ABOVE your current wd
   write.csv(mtcars, "../mtcars3.csv")  
   
 
@@ -162,6 +200,13 @@ There are two options (or at least be know of two).
 One interesting solution to the problem of specifying more durable paths is a packaged called `here()`
 
 https://www.tidyverse.org/articles/2017/12/workflow-vs-script/
+
+
+Some people have strong opinions about such things. For example:
+
+![](/Volumes/GoogleDrive/My Drive/RPKDesktop/SMEA/SMEA_550C_Rcourse_2019/JennyBryan_Screenshot.png)
+
+
 
 it works like this:
 
