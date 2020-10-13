@@ -55,7 +55,7 @@ To register, go to the site linked above.
 If you don't have a Google API key or don't want to deal w that, you can grab maps from an open-source option, http://maps.stamen.com , using the same `ggmap` package.
 
 ```{r, echo = FALSE}
-register_google(key = "AIzaSyCeloL13Ah7DykMnnwvTz8744fEn5N9sGE")
+register_google(key = "") #your key here 
 
 ```
 
